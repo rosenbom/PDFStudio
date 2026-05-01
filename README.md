@@ -1,4 +1,4 @@
-# PDF Page Studio
+# PDF Studio
 
 A small local web app for PDF page operations:
 
