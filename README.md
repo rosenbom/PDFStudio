@@ -6,6 +6,10 @@ A small local web app for PDF page operations:
 - Merge multiple PDF files into one
 - Split a PDF by page ranges
 
+## License
+
+MIT. See the LICENSE file for details.
+
 ## Run locally
 
 ```bash
