@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Page Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">PDF Studio</p>
+        <h1>Split, merge, and replace pages across PDF files.</h1>
+        <p class="lede">Upload a base PDF, swap specific pages from another PDF, or combine and extract pages without leaving the browser.</p>
+      </section>
+
+      <section class="panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="replace">Replace Pages</button>
+          <button class="tab" data-tab="merge">Merge PDFs</button>
+          <button class="tab" data-tab="split">Split PDF</button>
+        </div>
+
+        <section class="tab-panel active" id="replace-panel">
+          <form id="replace-form">
+            <label>
+              Base PDF
+              <input type="file" name="basePdf" accept="application/pdf" required />
+            </label>
+            <label>
+              Replacement PDF
+              <input type="file" name="replacementPdf" accept="application/pdf" required />
+            </label>
+            <div id="operations"></div>
+            <button type="button" class="secondary" id="add-operation">Add replacement</button>
+            <button type="submit">Create updated PDF</button>
+          </form>
+        </section>
+
+        <section class="tab-panel" id="merge-panel">
+          <form id="merge-form">
+            <label>
+              PDF files
+              <input type="file" name="pdfs" accept="application/pdf" multiple required />
+            </label>
+            <button type="submit">Merge files</button>
+          </form>
+        </section>
+
+        <section class="tab-panel" id="split-panel">
+          <form id="split-form">
+            <label>
+              Source PDF
+              <input type="file" name="pdf" accept="application/pdf" required />
+            </label>
+            <div id="ranges"></div>
+            <button type="button" class="secondary" id="add-range">Add range</button>
+            <button type="submit">Extract pages</button>
+          </form>
+        </section>
+
+        <p id="status" class="status"></p>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
