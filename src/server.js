@@ -1,4 +1,5 @@
 import express from 'express';
+import JSZip from 'jszip';
 import multer from 'multer';
 import { PDFDocument } from 'pdf-lib';
 import path from 'path';
@@ -18,6 +19,69 @@ function parsePageNumber(value, label) {
     throw new Error(`${label} must be a positive integer.`);
   }
   return pageNumber;
+}
+
+function buildSplitFileName(originalName, start, end) {
+  const parsedPath = path.parse(originalName || 'document.pdf');
+  const baseName = parsedPath.name || 'document';
+  return `${baseName}_${start}-${end}.pdf`;
+}
+
+function normalizeSplitRanges(sourcePageCount, ranges, chunkSize, autoCompleteFinalChunk) {
+  if (chunkSize !== undefined && chunkSize !== null && String(chunkSize).trim() !== '') {
+    const normalizedChunkSize = parsePageNumber(chunkSize, 'Chunk size');
+    const generatedRanges = [];
+
+    for (let start = 1; start <= sourcePageCount; start += normalizedChunkSize) {
+      generatedRanges.push({
+        start,
+        end: Math.min(start + normalizedChunkSize - 1, sourcePageCount)
+      });
+    }
+
+    return generatedRanges;
+  }
+
+  if (!Array.isArray(ranges) || ranges.length === 0) {
+    throw new Error('At least one page range is required.');
+  }
+
+  const normalizedRanges = ranges.map((range) => {
+    const start = parsePageNumber(range.start, 'Range start');
+    const end = parsePageNumber(range.end, 'Range end');
+
+    if (end < start) {
+      throw new Error(`Invalid range ${start}-${end}.`);
+    }
+
+    if (end > sourcePageCount) {
+      throw new Error(`Source PDF does not contain page ${end}.`);
+    }
+
+    return { start, end };
+  }).sort((left, right) => left.start - right.start);
+
+  for (let index = 1; index < normalizedRanges.length; index += 1) {
+    const previousRange = normalizedRanges[index - 1];
+    const currentRange = normalizedRanges[index];
+
+    if (currentRange.start <= previousRange.end) {
+      throw new Error(`Ranges ${previousRange.start}-${previousRange.end} and ${currentRange.start}-${currentRange.end} overlap.`);
+    }
+  }
+
+  if (autoCompleteFinalChunk && normalizedRanges.length > 0) {
+    const lastRange = normalizedRanges[normalizedRanges.length - 1];
+
+    if (lastRange.end < sourcePageCount) {
+      normalizedRanges.push({
+        start: lastRange.end + 1,
+        end: sourcePageCount
+      });
+    }
+  }
+
+  return normalizedRanges;
 }
 
 app.post('/api/process', upload.fields([
@@ -117,39 +181,40 @@ app.post('/api/split', upload.single('pdf'), async (req, res) => {
   try {
     const file = req.file;
     const ranges = JSON.parse(req.body.ranges ?? '[]');
+    const splitMode = req.body.splitMode;
+    const chunkSize = splitMode === 'chunkSize'
+      ? req.body.chunkSize
+      : (String(req.body.chunkSize ?? '').trim() === '' ? undefined : req.body.chunkSize);
+    const autoCompleteFinalChunk = req.body.autoCompleteFinalChunk === 'true';
 
     if (!file) {
       return res.status(400).json({ error: 'A PDF file is required.' });
     }
 
-    if (!Array.isArray(ranges) || ranges.length === 0) {
-      return res.status(400).json({ error: 'At least one page range is required.' });
-    }
-
     const sourcePdf = await PDFDocument.load(file.buffer);
-    const splitPdf = await PDFDocument.create();
+    const zip = new JSZip();
+    const normalizedRanges = normalizeSplitRanges(
+      sourcePdf.getPageCount(),
+      ranges,
+      chunkSize,
+      autoCompleteFinalChunk
+    );
 
-    for (const range of ranges) {
-      const start = parsePageNumber(range.start, 'Range start');
-      const end = parsePageNumber(range.end, 'Range end');
-
-      if (end < start) {
-        throw new Error(`Invalid range ${start}-${end}.`);
-      }
-
-      if (end > sourcePdf.getPageCount()) {
-        throw new Error(`Source PDF does not contain page ${end}.`);
-      }
-
+    for (const range of normalizedRanges) {
+      const splitPdf = await PDFDocument.create();
+      const { start, end } = range;
       const pageIndexes = Array.from({ length: end - start + 1 }, (_, offset) => start + offset - 1);
       const pages = await splitPdf.copyPages(sourcePdf, pageIndexes);
       pages.forEach((page) => splitPdf.addPage(page));
+      const pdfBytes = await splitPdf.save();
+      zip.file(buildSplitFileName(file.originalname, start, end), pdfBytes);
     }
 
-    const pdfBytes = await splitPdf.save();
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="split.pdf"');
-    return res.send(Buffer.from(pdfBytes));
+    const zipBytes = await zip.generateAsync({ type: 'nodebuffer' });
+    const archiveName = `${path.parse(file.originalname || 'split').name || 'split'}_split.zip`;
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${archiveName}"`);
+    return res.send(zipBytes);
   } catch (error) {
     return res.status(400).json({ error: error.message || 'Failed to split PDF.' });
   }

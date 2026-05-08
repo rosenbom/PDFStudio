@@ -53,8 +53,33 @@
               Source PDF
               <input type="file" name="pdf" accept="application/pdf" required />
             </label>
+            <fieldset class="mode-picker">
+              <legend>Split mode</legend>
+              <label class="choice">
+                <input type="radio" name="splitMode" value="ranges" checked />
+                Use custom ranges
+              </label>
+              <label class="choice">
+                <input type="radio" name="splitMode" value="chunkSize" />
+                Split every N pages
+              </label>
+            </fieldset>
+            <div id="chunk-size-panel" class="split-option-panel hidden">
+              <label>
+                Pages per file
+                <input type="number" min="1" name="chunkSize" id="chunk-size-input" />
+              </label>
+              <p class="hint">The app will generate all chunks automatically, including the final shorter file.</p>
+            </div>
+            <div id="ranges-panel" class="split-option-panel">
             <div id="ranges"></div>
             <button type="button" class="secondary" id="add-range">Add range</button>
+            </div>
+            <label class="choice checkbox">
+              <input type="checkbox" name="autoCompleteFinalChunk" id="auto-complete-final-chunk" checked />
+              Auto-add the final chunk if the last range stops before the last page
+            </label>
+            <p id="split-warning" class="status warning"></p>
             <button type="submit">Extract pages</button>
           </form>
         </section>

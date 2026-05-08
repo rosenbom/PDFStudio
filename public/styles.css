@@ -149,8 +149,51 @@ button:hover {
   margin: 20px 0 0;
 }
 
+.status.warning {
+  color: #7c4a03;
+  margin-top: 0;
+}
+
 .status.error {
   color: #9f1239;
+}
+
+.mode-picker {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.choice input {
+  width: auto;
+}
+
+.checkbox {
+  font-size: 0.95rem;
+}
+
+.split-option-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+.hint {
+  margin: 0;
+  color: rgba(31, 41, 51, 0.72);
+  font-size: 0.92rem;
 }
 
 @media (max-width: 720px) {

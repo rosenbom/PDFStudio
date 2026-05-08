@@ -1,0 +1,5 @@
+
+> pdf-editor-app@1.0.0 start
+> node src/server.js
+
+PDF app listening on http://127.0.0.1:58659
